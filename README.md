@@ -17,13 +17,14 @@ Xenon is a Roblox Lua Bytecode Interpreter (Exploit) Written In Lua, C++, and C#
 3. Exteremely easy-to-build with only two commands to compile it.
 
 ### Building
-This project is built with MSBuild. Here are the steps to building the project:
+This project is built with MSBuild. You need MSVC v142 and the .NET Framework 4.7.1 build tools installed to compile successfully.
+Here are the steps to building the project:
 1. Clone the repo
-```bash
-git clone "https://github.com/OpenGamerTips/Xenon.git"
-```
+    ```bash
+    git clone "https://github.com/OpenGamerTips/Xenon.git"
+    ```
 2. Compile with MSBuild or use Visual Studio to build the solution:
-```bash
-msbuild "PROJECT_SOLUTION_PATH"
-```
-3. View the built assemblies in the build folder.
+    ```bash
+    msbuild "Xenon/XenonProject.sln"
+    ```
+3. Open the built assemblies in the build folder.
