@@ -1,5 +1,2 @@
 .vs
-*.suo
-build
-packages
 obj
