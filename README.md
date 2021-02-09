@@ -5,7 +5,8 @@
 ## NOTE: Xenon is stil being developed
 
 ### What is it?
-Xenon is a Roblox Lua Bytecode Interpreter (Exploit) Written In Lua, C++, and C# all together in an exploit.
+Xenon is a Roblox Lua Bytecode Interpreter Written In Lua, C++, and C# all together in an exploit.    
+[Wiki](https://github.com/OpenGamerTips/Xenon/wiki)
 
 ### Why Should I care?
 1. It's under the MIT License which means you can use and modify its source and binaries for any reason as long as you include a copyright notice.
