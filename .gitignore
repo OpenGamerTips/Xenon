@@ -1,0 +1,4 @@
+*.suo
+build
+packages
+obj
