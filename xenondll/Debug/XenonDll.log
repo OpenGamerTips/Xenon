@@ -1,5 +1,7 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(477,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
   Main.cpp
-  XenonLib.cpp
+  Console.cpp
+  Pipes.cpp
+  Utility.cpp
   Generating Code...
   XenonDll.vcxproj -> C:\Users\nicho\Documents\GitHub\Xenon\build\XenonDll\XenonDll.dll
