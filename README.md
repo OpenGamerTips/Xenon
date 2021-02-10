@@ -2,7 +2,12 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/w41ccdgt3f2wct84?svg=true)](https://ci.appveyor.com/project/OpenGamerTips/Xenon)
 [![Update time](https://badges.pufler.dev/updated/OpenGamerTips/Xenon)](https://github.com/OpenGamerTips/Xenon)
 
-## NOTE: Xenon is stil being developed
+### Development Checklist
+- [X] Dumper
+- [X] LBI
+- [ ] DLL
+- [ ] UI
+- [ ] Site
 
 ### What is it?
 Xenon is a Roblox Lua Bytecode Interpreter Written In Lua, C++, and C# all together in an exploit.    
