@@ -19,6 +19,9 @@
     <Filter Include="Resource Files\Lua">
       <UniqueIdentifier>{065373af-1d16-40bb-b37f-dec192826d7a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\EyeStep">
+      <UniqueIdentifier>{84f8c9d9-2dd3-49e8-8071-511f5b177c1c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.hpp">
@@ -95,6 +98,18 @@
     </ClInclude>
     <ClInclude Include="Lua\lauxlib.h">
       <Filter>Resource Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="RLua.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Retcheck.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EyeStep\eyestep.h">
+      <Filter>Resource Files\EyeStep</Filter>
+    </ClInclude>
+    <ClInclude Include="EyeStep\eyestep_utility.h">
+      <Filter>Resource Files\EyeStep</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -195,6 +210,15 @@
       <Filter>Resource Files\Lua</Filter>
     </ClCompile>
     <ClCompile Include="XenonLib\Utility.cpp">
+      <Filter>Resource Files\XenonLib</Filter>
+    </ClCompile>
+    <ClCompile Include="EyeStep\eyestep_utility.cpp">
+      <Filter>Resource Files\EyeStep</Filter>
+    </ClCompile>
+    <ClCompile Include="EyeStep\eyestep.cpp">
+      <Filter>Resource Files\EyeStep</Filter>
+    </ClCompile>
+    <ClCompile Include="XenonLib\Security.hpp">
       <Filter>Resource Files\XenonLib</Filter>
     </ClCompile>
   </ItemGroup>

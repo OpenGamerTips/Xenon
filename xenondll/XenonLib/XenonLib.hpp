@@ -8,19 +8,14 @@
 #include <sstream>
 #include <conio.h>
 #include <thread>
+#include <vector>
 extern "C"
 {
-	#include "../Lua/lua.h"
-	#include "../Lua/lauxlib.h"
-	#include "../Lua/lualib.h"
-	#include "../Lua/lobject.h"
-	#include "../Lua/lstate.h"
-	#include "../Lua/lfunc.h"
-	#include "../Lua/lopcodes.h"
-	#include "../Lua/lstring.h"
-	#include "../Lua/ldo.h"
-	#include "../Lua/llex.h"
-	#include "../Lua/lvm.h"
+	#include "..\Lua\lua.h"
+	#include "..\Lua\lualib.h"
+	#include "..\Lua\lauxlib.h"
+	#include "..\Lua\luaconf.h"
+	#include "..\Lua\llimits.h"
 }
 #pragma endregion
 
@@ -31,10 +26,10 @@ extern "C"
 #define CONSOLE_INFO_ERROR -1
 
 // Make my brain not hurt
-#define WriteByte(Address, Value) *(byte*)((DWORD)Address) = (byte)Value
-#define WriteInt32(Address, Value) *(int*)((DWORD)Address) = (int)Value
-#define ReadByte(Address) *(byte*)((DWORD)Address)
-#define ReadInt32(Address) *(int*)((DWORD)Address)
+#define WriteByte(Address, Value) *(byte*)((ulong)Address) = (byte)Value
+#define WriteInt32(Address, Value) *(uint*)((ulong)Address) = (uint)Value
+#define ReadByte(Address) *(byte*)((ulong)Address)
+#define ReadInt32(Address) *(uint*)((ulong)Address)
 #pragma endregion
 
 #pragma region Custom Types
@@ -79,12 +74,20 @@ namespace Xenon
 	};
 	#pragma endregion
 
-	#pragma region Utility
+	#pragma region Utility Class
 	class Utility
 	{
 	public:
-		static void* DetourAsm32(ulong Point, void* To);
-		static bool UnDetourAsm32(ulong Point, void* Backup);
+		struct FuncData
+		{
+			ulong ProloguePoint;
+			ulong EpiloguePoint;
+			std::vector<byte> Assembly;
+			uint Size;
+		};
+		static FuncData* GetFuncData(ulong Point);
+		static void* DetourFunction(ulong Point, ulong Loc);
+		static bool UnDetourFunction(uint Point, void* Backup);
 	};
 	#pragma endregion
 }

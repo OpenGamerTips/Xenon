@@ -1,7 +1,9 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(477,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
   Main.cpp
-  Console.cpp
-  Pipes.cpp
-  Utility.cpp
-  Generating Code...
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep.h(17,1): warning C4005: 'PRE_66': macro redefinition
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\Retcheck.h(123): message : see previous definition of 'PRE_66'
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep.h(18,1): warning C4005: 'PRE_67': macro redefinition
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\Retcheck.h(124): message : see previous definition of 'PRE_67'
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep.h(19,1): warning C4005: 'PRE_LOCK': macro redefinition
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\Retcheck.h(125): message : see previous definition of 'PRE_LOCK'
   XenonDll.vcxproj -> C:\Users\nicho\Documents\GitHub\Xenon\build\XenonDll\XenonDll.dll

@@ -96,7 +96,7 @@ void Console::Info(int Type, std::string Message)
 	if (Type == 1)
 	{
 		SetConsoleTextAttribute(ConsoleHandle, 10);
-		std::cout << "[=] ";
+		std::cout << "[+] ";
 	}
 	if (Type == 0)
 	{

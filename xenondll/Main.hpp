@@ -1,4 +1,9 @@
 #include <Windows.h>
 #include <iostream>
+#include <iomanip>
 #include "XenonLib\XenonLib.hpp"
+#include "XenonLib\Security.hpp"
+#include "RLua.h"
+#include "EyeStep/eyestep.h"
+#include "EyeStep/eyestep_utility.h"
 #pragma once

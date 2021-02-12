@@ -1,0 +1,9 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(477,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  Main.cpp
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\XenonLib\Security.hpp(38,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  Generating code
+  26 of 1312 functions ( 2.0%) were compiled, the rest were copied from previous compilation.
+    7 functions were new in current compilation
+    10 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  XenonDll.vcxproj -> C:\Users\nicho\Documents\GitHub\Xenon\build\XenonDll\XenonDll.dll
