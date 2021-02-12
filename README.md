@@ -5,7 +5,7 @@
 ### Development Checklist
 - [X] Dumper
 - [X] LBI
-- [ ] DLL
+- [X] DLL (Around 85%)
 - [ ] UI
 - [ ] Site
 
