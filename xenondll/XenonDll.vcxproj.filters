@@ -27,9 +27,6 @@
     <ClInclude Include="Main.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="XenonLib\XenonLib.hpp">
-      <Filter>Resource Files\XenonLib</Filter>
-    </ClInclude>
     <ClInclude Include="Lua\lcode.h">
       <Filter>Resource Files\Lua</Filter>
     </ClInclude>
@@ -110,6 +107,9 @@
     </ClInclude>
     <ClInclude Include="EyeStep\eyestep_utility.h">
       <Filter>Resource Files\EyeStep</Filter>
+    </ClInclude>
+    <ClInclude Include="XenonLib\XenonLib.hpp">
+      <Filter>Resource Files\XenonLib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -219,6 +219,9 @@
       <Filter>Resource Files\EyeStep</Filter>
     </ClCompile>
     <ClCompile Include="XenonLib\Security.hpp">
+      <Filter>Resource Files\XenonLib</Filter>
+    </ClCompile>
+    <ClCompile Include="XenonLib\AntiTaint.cpp">
       <Filter>Resource Files\XenonLib</Filter>
     </ClCompile>
   </ItemGroup>

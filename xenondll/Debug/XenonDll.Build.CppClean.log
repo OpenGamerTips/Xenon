@@ -2,7 +2,9 @@ c:\users\nicho\documents\github\xenon\xenondll\debug\vc142.pdb
 c:\users\nicho\documents\github\xenon\xenondll\debug\vc142.idb
 c:\users\nicho\documents\github\xenon\xenondll\debug\utility.obj
 c:\users\nicho\documents\github\xenon\xenondll\debug\pipes.obj
+c:\users\nicho\documents\github\xenon\xenondll\debug\security.obj
 c:\users\nicho\documents\github\xenon\xenondll\debug\console.obj
+c:\users\nicho\documents\github\xenon\xenondll\debug\antitaint.obj
 c:\users\nicho\documents\github\xenon\xenondll\debug\main.obj
 c:\users\nicho\documents\github\xenon\xenondll\debug\eyestep_utility.obj
 c:\users\nicho\documents\github\xenon\xenondll\debug\eyestep.obj
@@ -35,8 +37,8 @@ c:\users\nicho\documents\github\xenon\xenondll\debug\ltable.obj
 c:\users\nicho\documents\github\xenon\xenondll\debug\lstrlib.obj
 c:\users\nicho\documents\github\xenon\xenondll\debug\lstring.obj
 c:\users\nicho\documents\github\xenon\xenondll\debug\lstate.obj
-c:\users\nicho\documents\github\xenon\build\xenondll\xenondll.dll
 c:\users\nicho\documents\github\xenon\build\xenondll\xenondll.ilk
+c:\users\nicho\documents\github\xenon\build\xenondll\xenondll.dll
 c:\users\nicho\documents\github\xenon\build\xenondll\xenondll.pdb
 c:\users\nicho\documents\github\xenon\xenondll\debug\xenondll.tlog\cl.command.1.tlog
 c:\users\nicho\documents\github\xenon\xenondll\debug\xenondll.tlog\cl.read.1.tlog

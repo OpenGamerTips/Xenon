@@ -3,14 +3,13 @@
 [![Update time](https://badges.pufler.dev/updated/OpenGamerTips/Xenon)](https://github.com/OpenGamerTips/Xenon)
 
 ### Development Checklist
-- [X] Dumper
-- [X] LBI
-- [ ] DLL
+- [X] Dumper (Redone)
+- [X] DLL (Being Redone)
 - [ ] UI
 - [ ] Site
 
 ### What is it?
-Xenon is a Roblox Lua Bytecode Interpreter Written In Lua, C++, and C# all together in an exploit.    
+Xenon is a Roblox Lua Bytecode Interpreter Written In Lua, C++, and C# all together in an exploit.
 [Wiki](https://github.com/OpenGamerTips/Xenon/wiki)
 
 ### Why Should I care?
@@ -18,7 +17,7 @@ Xenon is a Roblox Lua Bytecode Interpreter Written In Lua, C++, and C# all toget
 2. It's FOSS!
 
 ### Specs
-1. We use a custom-coded LBI. Unlike a lot of the other LBI's out there with lazy developers, we chose to write our own LBI.
+---1. We use a custom-coded LBI. Unlike a lot of the other LBI's out there with lazy developers, we chose to write our own LBI.---
 2. The source is compile-ready with each update. Automated building and testing makes sure you can download the branch source and have confidence that it will build successfully.
 3. Exteremely easy-to-build with only two commands to compile it.
 

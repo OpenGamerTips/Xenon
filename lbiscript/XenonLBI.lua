@@ -1,35 +1,77 @@
 -- Project: Xenon Lua Bytecode Interpreter
 -- Developer: H3x0R
--- Version: 1.0
+-- Version: 1.1
+-- Changelog: Large bugfixes. Feature additions.
 -- License: MIT (See script epilogue for more information.)
-
 local StripDebugInfo = false
+local StripInstructionInfo = false
 
 -- SECTION 0: PROLOGUE --
 local InstructionNames = {
-[0] = "MOVE",      "LOADK",     "LOADBOOL", "LOADNIL",
-      "GETUPVAL",   "GETGLOBAL", "GETTABLE", "SETGLOBAL",
-      "SETUPVAL",   "SETTABLE",  "NEWTABLE", "SELF",
-      "ADD",        "SUB",       "MUL",      "DIV",
-      "MOD",        "POW",       "UNM",      "NOT",
-      "LEN",        "CONCAT",    "JMP",      "EQ",
-      "LT",         "LE",        "TEST",     "TESTSET",
-      "CALL",       "TAILCALL",  "RETURN",   "FORLOOP",
-      "FORPREP",    "TFORLOOP",  "SETLIST",  "CLOSE",
-      "CLOSURE",    "VARARG"
+[0] = "MOVE",     "LOADK",     "LOADBOOL", "LOADNIL",
+	"GETUPVAL",   "GETGLOBAL", "GETTABLE", "SETGLOBAL",
+	"SETUPVAL",   "SETTABLE",  "NEWTABLE", "SELF",
+	"ADD",        "SUB",       "MUL",      "DIV",
+	"MOD",        "POW",       "UNM",      "NOT",
+	"LEN",        "CONCAT",    "JMP",      "EQ",
+	"LT",         "LE",        "TEST",     "TESTSET",
+	"CALL",       "TAILCALL",  "RETURN",   "FORLOOP",
+	"FORPREP",    "TFORLOOP",  "SETLIST",  "CLOSE",
+	"CLOSURE",    "VARARG"
 }
 
 local InstructionTypes = { -- iABC, iABx, iAsBx in that strict order.
 [0] = 1, 2, 1, 1,
-      1, 2, 1, 2,
-      1, 1, 1, 1,
-      1, 1, 1, 1,
-      1, 1, 1, 1,
-      1, 1, 3, 1,
-      1, 1, 1, 1,
-      1, 1, 1, 3,
-      3, 1, 1, 1,
-      2, 1
+	1, 2, 1, 2,
+	1, 1, 1, 1,
+	1, 1, 1, 1,
+	1, 1, 1, 1,
+	1, 1, 3, 1,
+	1, 1, 1, 1,
+	1, 1, 1, 3,
+	3, 1, 1, 1,
+	2, 1
+}
+
+local InstructionConstArgs = {
+[0] = {B = false, C = false},
+	{Bx = true},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{Bx = true},
+	{B = false, C = true},
+	{Bx = true},
+	{B = false, C = false},
+	{B = true,  C = true},
+	{B = false, C = false},
+	{B = false, C = true},
+	{B = true,  C = true},
+	{B = true,  C = true},
+	{B = true,  C = true},
+	{B = true,  C = true},
+	{B = true,  C = true},
+	{B = true,  C = true},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = true,  C = true},
+	{B = true,  C = true},
+	{B = true,  C = true},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{B = false, C = false},
+	{Bx = false},
+	{B = false, C = false},
 }
 
 -- SECTION 1: OPTIMIZATION --
@@ -38,550 +80,584 @@ local rshift, lshift, band = bit.rshift, bit.lshift, bit.band
 local sub, gsub, byte, reverse, concat, match = string.sub, string.gsub, string.byte, string.reverse, table.concat, string.match
 
 -- SECTION 2: STREAM LIBRARY --
-local Stream = {
-    Position = 1,
-    Size_T = 4,
-    IntSize = 4,
-    Source = nil
-}
-
+local Stream = {}
 local function ReadByte()
-    local Byte = byte(sub(Stream.Source, Stream.Position, Stream.Position))
-    Stream.Position = Stream.Position + 1
-    return Byte
+	local Byte = byte(sub(Stream.Source, Stream.Position, Stream.Position))
+	Stream.Position = Stream.Position + 1
+	return Byte
 end
 
-local function ReadInt32() -- Screw it, little endian is default in Lua bytecode.
-    local A, B, C, D = ReadByte(), ReadByte(), ReadByte(), ReadByte()
-    return (D * 16777216) + (C * 65536) + (B * 256) + A
+local function ReadInt32()
+	local A, B, C, D = ReadByte(), ReadByte(), ReadByte(), ReadByte()
+	if Stream.LittleEndian then
+		return (D * 16777216) + (C * 65536) + (B * 256) + A
+	else
+		return (A * 16777216) + (B * 65536) + (C * 256) + D
+	end
 end
 
 local function ReadLong()
-    return ReadInt32() * 4294967296 + ReadInt32()
+	if Stream.LittleEndian then
+		return ReadInt32() * 4294967296 + ReadInt32()
+	else
+		return ReadInt32() + ReadInt32() * 4294967296
+	end
 end
 
-local function ReadFloat()
-    local A, B, C, D = ReadByte(), ReadByte(), ReadByte(), ReadByte()
-    local Sign, Exponent, Fraction = (-1 ^ rshift(D, 7)), (rshift(C, 7) + lshift(band(D, 0x7F), 1)), (A + lshift(B, 8) + lshift(band(C, 0x7F), 16))
-    local Normal = 1
-    if Exponent == 0 then
-        if Fraction == 0 then
-            return Sign * 0
-        else
-            Normal = 0
-            Exponent = 1
-        end
-    elseif Exponent == 0x7F then
-        if Fraction == 0 then
-            return Sign * (1 / 0)
-        else
-            return Sign * (0 / 0)
-        end
-    end
+local function ReadSingle()
+	local A, B, C, D;
+	if Stream.LittleEndian then
+		A, B, C, D = ReadByte(), ReadByte(), ReadByte(), ReadByte()
+	else
+		D, C, B, A = ReadByte(), ReadByte(), ReadByte(), ReadByte()
+	end
 
-    return Sign * 2 ^ (Exponent - 127) * (1 + Normal / 2 ^ 23)
+	local Sign, Exponent, Fraction = (-1 ^ rshift(D, 7)), (rshift(C, 7) + lshift(band(D, 0x7F), 1)), (A + lshift(B, 8) + lshift(band(C, 0x7F), 16))
+	local Normal = 1
+	if Exponent == 0 then
+		if Fraction == 0 then
+			return Sign * 0
+		else
+			Normal = 0
+			Exponent = 1
+		end
+	elseif Exponent == 0x7F then
+		if Fraction == 0 then
+			return Sign * (1 / 0)
+		else
+			return Sign * (0 / 0)
+		end
+	end
+
+	return Sign * 2 ^ (Exponent - 127) * (1 + Normal / 2 ^ 23)
 end
 
 local function ReadDouble()
-    local A, B, C, D, E, F, G, H = ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte()
-    local Sign, Exponent, Fraction = (1 ^ rshift(H, 7)), (lshift(band(H, 0x7F), 4) + rshift(G, 4)), (band(G, 0x0F) * 2 ^ 48)
-    local Normal = 1
+	local A, B, C, D, E, F, G, H;
+	if Stream.LittleEndian then
+		A, B, C, D, E, F, G, H = ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte()
+	else
+		H, G, F, E, D, C, B, A = ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte(), ReadByte()
+	end
 
-    Fraction = Fraction + (F * 2 ^ 40) + (E * 2 ^ 32) + (D * 2 ^ 24) + (C * 2 ^ 16) + (B * 2 ^ 8) + A
-    if Exponent == 0 then
-        if Fraction == 0 then
-            return Sign * 0
-        else
-            Normal = 0
-            Exponent = 1
-        end
-    elseif Exponent == 0x7FF then
-        if Fraction == 0 then
-            return Sign * (1 / 0)
-        else
-            return Sign * (0 / 0)
-        end
-    end
+	local Sign, Exponent, Fraction = (1 ^ rshift(H, 7)), (lshift(band(H, 0x7F), 4) + rshift(G, 4)), (band(G, 0x0F) * 2 ^ 48)
+	local Normal = 1
 
-    return Sign * 2 ^ (Exponent - 1023) * (Normal + Fraction / 2 ^ 52)
+	Fraction = Fraction + (F * 2 ^ 40) + (E * 2 ^ 32) + (D * 2 ^ 24) + (C * 2 ^ 16) + (B * 2 ^ 8) + A
+	if Exponent == 0 then
+		if Fraction == 0 then
+			return Sign * 0
+		else
+			Normal = 0
+			Exponent = 1
+		end
+	elseif Exponent == 0x7FF then
+		if Fraction == 0 then
+			return Sign * (1 / 0)
+		else
+			return Sign * (0 / 0)
+		end
+	end
+
+	return Sign * 2 ^ (Exponent - 1023) * (Normal + Fraction / 2 ^ 52)
+end
+
+local function ReadFloat()
+	if Stream.FlSize == 4 then return ReadSingle() elseif Stream.FlSize == 8 then return ReadDouble() else error("Invalid floating point size.", 2) end
 end
 
 local function ReadInt() -- Based on what integer size it uses.
-    if Stream.IntSize == 4 then return ReadInt32() elseif Stream.IntSize == 8 then return ReadLong() else error("Invalid int size.", 2) end
+	if Stream.IntSize == 4 then return ReadInt32() elseif Stream.IntSize == 8 then return ReadLong() else error("Invalid int size.", 2) end
+end
+
+local function ReadInstruction()
+	if Stream.SizeI == 4 then return ReadInt32() elseif Stream.SizeI == 8 then return ReadLong() else error("Invalid instruction size.", 2) end
+end
+
+local function ReadNumber()
+	if Stream.FlSize == 0 then
+		if Stream.SizeNum == 4 then return ReadInt32() elseif Stream.SizeNum == 8 then return ReadLong() else error("Invalid number size.", 2) end
+	else
+		return ReadFloat()
+	end
 end
 
 local function GetSizeT()
-    if Stream.Size_T == 4 then return ReadInt32() elseif Stream.Size_T == 8 then return ReadLong() else error("Invalid size_t size.", 2) end
+	if Stream.Size_T == 4 then return ReadInt32() elseif Stream.Size_T == 8 then return ReadLong() else error("Invalid size_t size.", 2) end
 end
 
 local function ReadString(Len)
-    if not Len then Len = GetSizeT() end
-    if Len == 0 then return "" end
+	if not Len then Len = GetSizeT() end
+	if Len == 0 then return "" end
 
-    local String = sub(Stream.Source, Stream.Position, (Stream.Position + Len - 1))
-    Stream.Position = Stream.Position + Len
-    return String
+	local String = sub(Stream.Source, Stream.Position, (Stream.Position + Len - 1))
+	Stream.Position = Stream.Position + Len
+	return String
 end
 
 -- SECTION 3: PARSING --
 local function ParseBytecodeHeader() -- x86 Header Bytes: 1B4C7561 51000104 04040800
-    assert(ReadInt32() == 1635077147, "Invalid bytecode signature.") -- Representation for the Lua bytecode header in integer32 form.
-    assert(ReadByte() == 0x51, "Lua bytecode version needs to be 5.1.") -- 0x51 would represent version 5.1 and 0x52 for version 5.2.
-    ReadByte() -- FormatVersion, I don't need to check if it's official or not.
-    assert(ReadByte() == 0x01, "Bytecode format must be in little endian format.")
-    Stream.IntSize = ReadByte()
-    Stream.Size_T = ReadByte()
-    -- Nothing below is needed because Xenon compiles Lua bytecode on an x86 application
-    -- Maybe some day I will revise this to add x64 support if Roblox migrates to it.
-    ReadByte() -- SizeInstruction
-    ReadByte() -- SizeLuaNumber
-    ReadByte() -- Integral Flag
-    return true
+	assert(ReadInt32() == 1635077147, "Invalid bytecode signature.") -- Representation for the Lua bytecode header in integer32 form.
+	assert(ReadByte() == 0x51, "Lua bytecode version needs to be 5.1.") -- 0x51 would represent version 5.1 and 0x52 for version 5.2.
+	assert(ReadByte() == 0, "Lua bytecode format must be official.") -- FormatVersion
+	Stream.LittleEndian = ReadByte() ~= 0
+	Stream.IntSize = ReadByte()
+	Stream.Size_T = ReadByte()
+	Stream.SizeI = ReadByte() -- SizeInstruction
+	Stream.SizeNum = ReadByte() -- SizeLuaNumber
+	if ReadByte() == 0 then -- Floating point number
+		Stream.FlSize = Stream.SizeNum
+	end
+
+	return true
 end
 
 local DeserializeChunk;
 DeserializeChunk = function()
-    local Chunk = {}
-    Chunk.Name = sub(ReadString(), 1, -2)
-    Chunk.StartLine = ReadInt()
-    Chunk.EndLine = ReadInt()
-    Chunk.Nups = ReadByte()
-    Chunk.Nparams = ReadByte()
-    Chunk.IsVararg = ReadByte()
-    Chunk.MaxStackSize = ReadByte()
+	local Chunk = {}
+	Chunk.Name = sub(ReadString(), 1, -2)
+	Chunk.StartLine = ReadInt()
+	Chunk.EndLine = ReadInt()
+	Chunk.Nups = ReadByte()
+	Chunk.Nparams = ReadByte()
+	Chunk.IsVararg = ReadByte()
+	Chunk.MaxStackSize = ReadByte()
 
-    -- Instructions (Only took ten years to figure out how to bitmask)
-    Chunk.Instructions = {} -- TODO: Local tables (maybe a performance boost?)
-    for Idx = 1, ReadInt() do
-        local InstD8A = ReadInt32() -- TODO: Use iSize for x64 compiling
-        local OpCode = band(InstD8A, 0x3F)
-        local Type = InstructionTypes[OpCode]
-        local Inst = {Opcode = OpCode, Type = nil, A = band(rshift(InstD8A, 6), 0xFF)}
-        if Type == 1 then -- TODO: Add constant optimization
-            Inst.B = band(rshift(InstD8A, 23), 0x1FF)
-            Inst.C = band(rshift(InstD8A, 14), 0x1FF)
-        elseif Type == 2 then
-            Inst.Bx = band(rshift(InstD8A, 14), 0x3FFFF)  -- C A N C E R
-        elseif Type == 3 then
-            Inst.sBx = band(rshift(InstD8A, 14), 0x3FFFF) - 131071 -- sBx = Signed Bx
-        end
+	-- Instructions (Only took ten years to figure out how to bitmask)
+	local Instructions = {} -- ADDED! Local tables (maybe a performance boost?)
+	for Idx = 1, ReadInt() do
+		local InstD8A = ReadInstruction() -- ADDED! Use iSize for x64 compiling
+		local OpCode = band(InstD8A, 0x3F)
+		local Type = InstructionTypes[OpCode]
+		local KstArgs = InstructionConstArgs[OpCode]
+		local Inst = {Opcode = OpCode, A = band(rshift(InstD8A, 6), 0xFF)}
+		if Type == 1 then -- TODO: Add constant optimization
+			Inst.Type = "iABC"
+			Inst.B = band(rshift(InstD8A, 23), 0x1FF)
+			Inst.C = band(rshift(InstD8A, 14), 0x1FF)
+			Inst.B_KstArg = KstArgs.B and Inst.B > 0xFF
+			Inst.C_KstArg = KstArgs.C and Inst.C > 0xFF
+		elseif Type == 2 then
+			Inst.Type = "iABx"
+			Inst.Bx = band(rshift(InstD8A, 14), 0x3FFFF)  -- C A N C E R
+			Inst.Bx_KstArg = KstArgs.Bx
+		elseif Type == 3 then
+			Inst.Type = "iAsBx"
+			Inst.sBx = band(rshift(InstD8A, 14), 0x3FFFF) - 131071 -- sBx = Signed Bx
+		end
 
-        Inst.Name = InstructionNames[OpCode]
-        Chunk.Instructions[Idx] = Inst
-    end
+		if not StripInstructionInfo then Inst.Name = InstructionNames[OpCode] end
+		Instructions[Idx] = Inst
+	end
 
-    -- Constants
-    Chunk.Constants = {}
-    for Idx = 1, ReadInt() do
-        local Kst;
-        local KstType = ReadByte()
-        if KstType == 1 then -- LUA_TBOOLEAN
-            Kst = ReadByte() ~= 0
-        elseif KstType == 3 then -- LUA_TNUMBER
-            Kst = ReadDouble()
-        elseif KstType == 4 then -- LUA_TSTRING
-            Kst = sub(ReadString(), 1, -2)
-        end
+	-- Constants
+	local Constants = {}
+	for Idx = 1, ReadInt() do
+		local Kst;
+		local KstType = ReadByte()
+		if KstType == 1 then -- LUA_TBOOLEAN
+			Kst = ReadByte() ~= 0
+		elseif KstType == 3 then -- LUA_TNUMBER
+			Kst = ReadNumber() -- ADDED! Add integral flag.
+		elseif KstType == 4 then -- LUA_TSTRING
+			Kst = sub(ReadString(), 1, -2)
+		end
 
-        Chunk.Constants[Idx - 1] = Kst
-    end
+		Constants[Idx - 1] = Kst
+	end
 
-    -- Protos
-    Chunk.Protos = {}
-    for Idx = 1, ReadInt() do
-        Chunk.Protos[Idx - 1] = DeserializeChunk(Stream)
-    end
+	for _, I in pairs(Instructions) do
+		if I.Bx_KstArg then
+			I.Bx_Constant = Constants[I.Bx + 1]
+		else
+			if I.B_KstArg then
+				--warn(I.Name, Constants[I.C - 0xFF])
+				I.B_Constant = Constants[I.B - 0xFF]
+			end
 
-    -- Debug Info
-    Chunk.Debug = {Lines = {}, Locals = {}, Upvalues = {}}
-    for Idx = 1, ReadInt() do -- Line Numbers
-        local LineNo = ReadInt32()
-        if not StripDebugInfo then Chunk.Debug.Lines[Idx] = LineNo end
-    end
+			if I.C_KstArg then
+				print(I.Name, Constants[I.C - 0xFF])
+				I.C_Constant = Constants[I.C - 0xFF]
+			end
+		end
+	end
 
-    for Idx = 1, ReadInt() do -- Locals
-        local LocalName = ReadString()
-        Stream.Position = Stream.Position + 8 -- TODO: Add more debug information in place of this.
-        if not StripDebugInfo then Chunk.Debug.Locals[Idx] = LocalName end
-    end
+	Chunk.Instructions = Instructions
+	Chunk.Constants = Constants
 
-    for Idx = 1, ReadInt() do -- Upvalues
-        local UpvalueName = ReadString()
-        if not StripDebugInfo then Chunk.Debug.Upvalues[Idx] = UpvalueName end
-    end
+	-- Protos
+	local Protos = {}
+	for Idx = 1, ReadInt() do
+		Protos[Idx - 1] = DeserializeChunk(Stream)
+	end
+	Chunk.Protos = Protos
 
-    return Chunk
+	-- Debug Info
+	Chunk.Debug = {Lines = {}, Locals = {}, Upvalues = {}}
+	for Idx = 1, ReadInt() do -- Line Numbers
+		local LineNo = ReadInt32()
+		if not StripDebugInfo then Chunk.Debug.Lines[Idx] = LineNo end
+	end
+
+	for Idx = 1, ReadInt() do -- Locals
+		local LocalName = ReadString()
+		Stream.Position = Stream.Position + 8 -- TODO: Add more debug information in place of this.
+		if not StripDebugInfo then Chunk.Debug.Locals[Idx] = LocalName end
+	end
+
+	for Idx = 1, ReadInt() do -- Upvalues
+		local UpvalueName = ReadString()
+		if not StripDebugInfo then Chunk.Debug.Upvalues[Idx] = UpvalueName end
+	end
+
+	return Chunk
 end
 
 local function DeserializeBytecode(Bytecode)
-    Stream.Source = Bytecode
-    ParseBytecodeHeader()
-    return DeserializeChunk()
+	Stream = {
+		Position = 1,
+		Size_T = 0,
+		SizeI = 0,
+		SizeNum = 0,
+		IntSize = 0,
+		FlSize = 0,
+		LittleEndian = true,
+		Source = nil
+	}
+
+	Stream.Source = Bytecode
+	ParseBytecodeHeader()
+	return DeserializeChunk()
+end
+
+local function OpenUpvalue(UpvalueList, Idx, Stack)
+	local Last = UpvalueList[Idx] or {Index = Idx; Loc = Stack;}
+	UpvalueList[Idx] = Last
+	return Last
+end
+
+local function CloseUpvalues(UpvalueList, Idx)
+	for Edx, Upvalue in pairs(UpvalueList) do
+		if Upvalue.Index >= Idx then
+			Upvalue.Value = Upvalue.Loc[Upvalue.Index] -- store value
+			Upvalue.Loc = Upvalue
+			Upvalue.Index = nil
+			UpvalueList[Edx] = nil
+		end
+	end
+end
+
+local function LuaVarargs(...)
+	return select('#', ...), {...} -- Number of args, args packed.
 end
 
 local function WrapFunction(Chunk, Upvalues)
-    local InstructionList, Instruction = Chunk.Instructions, 1
-    local Protos, Constants = Chunk.Protos, Chunk.Constants
-    local Environment, Stack, StackTop = nil, {}, 0
-    local VarArg, VarArgSize = {}, 0
-    local function GetRegisteredValue(I) -- Gets a value that could either be on the stack or in the constant pool.
-        if I <= 255 then
-            return Stack[I]
-        else
-            return Constants[I - 256]
-        end
-    end
+	local InstructionList, Instruction = Chunk.Instructions, 1
+	local Protos, Constants = Chunk.Protos, Chunk.Constants
+	local Environment, Stack, StackTop = nil, {}, 0
+	local VarArg, VarArgSize = {}, 0
+	local OpenUpvalues = {}
 
-    -- Yoinked from my old LBI and optimized because too much localizing can slow down performance by over 70% after I did a test on it.
-    local OpFuncs = {
-        [0] = function(I) -- MOVE
-            Stack[I.A] = Stack[I.B]
-        end;
-        [1] = function(I) -- LOADK
-            Stack[I.A] = Constants[I.Bx]
-        end;
-        [2] = function(I) -- LOADBOOL
-            Stack[I.A] = I.B ~= 0 -- If B == 1 then load true onto the stack vice versa
-            if I.C ~= 0 then -- If C is non-zero then JMP 1 instruction
-                Instruction = Instruction + 1
-            end
-        end;
-        [3] = function(I) -- LOADNIL
-            for Index = I.A, I.B do -- Load nil values onto the stack in the range A-B
-                Stack[Index] = nil
-            end
-        end;
-        [4] = function(I) -- GETUPVAL
-            Stack[I.A] = Upvalues[I.B]
-        end;
-        [5] = function(I) -- GETGLOBAL
-            --print(I.A, I.Bx, Constants[I.Bx])
-            Stack[I.A] = Environment[Constants[I.Bx]]
-        end;
-        [6] = function(I) -- GETTABLE
-            Stack[I.A] = Stack[I.B][GetRegisteredValue(I.C)]
-        end;
-        [7] = function(I) -- SETGLOBAL
-            Environment[Constants[I.Bx]] = Stack[I.A]
-        end;
-        [8] = function(I) -- SETUPVAL
-            Upvalues[I.B] = Stack[I.A]
-        end;
-        [9] = function(I) -- SETTABLE
-            Stack[I.A][GetRegisteredValue(I.B)] = GetRegisteredValue(I.C)
-        end;
-        [10] = function(I) -- NEWTABLE
-            Stack[I.A] = {} -- I'm not gonna add table allocation its too hard and would add more performance drag.
-        end;
-        [11] = function(I) -- SELF
-            local A = I.A -- Example when it would speed up if locals were used.
-            local B = I.B
-            local Key = GetRegisteredValue(I.C)
-            Stack[A + 1] = Stack[B]
-            Stack[A] = Stack[B][Key]
-        end;
-        [12] = function(I) -- ADD
-            Stack[I.A] = (GetRegisteredValue(I.B) + GetRegisteredValue(I.C))
-        end;
-        [13] = function(I) -- SUB
-            Stack[I.A] = (GetRegisteredValue(I.B) - GetRegisteredValue(I.C))
-        end;
-        [14] = function(I) -- MUL
-            Stack[I.A] = (GetRegisteredValue(I.B) * GetRegisteredValue(I.C))
-        end;
-        [15] = function(I) -- DIV
-            Stack[I.A] = (GetRegisteredValue(I.B) / GetRegisteredValue(I.C))
-        end;
-        [16] = function(I) -- MOD
-            Stack[I.A] = (GetRegisteredValue(I.B) % GetRegisteredValue(I.C))
-        end;
-        [17] = function(I) -- POW
-            Stack[I.A] = (GetRegisteredValue(I.B) ^ GetRegisteredValue(I.C))
-        end;
-        [18] = function(I) -- UNM (NEGATE)
-            Stack[I.A] = -Stack[I.B]
-        end;
-        [19] = function(I) -- NOT
-            Stack[I.A] = not Stack[I.B]
-        end;
-        [20] = function(I) -- LEN
-            Stack[I.A] = #Stack[I.B]
-        end;
-        [21] = function(I) -- CONCAT
-            local Concatenated = {} -- Used to use a string but tables are faster
-            for Index = I.B, I.C do -- Concatenate items in the stack from range B-C
-                Concatenated[#Concatenated + 1] = Stack[Index]
-            end
-            Stack[I.A] = concat(Concatenated)
-        end;
-        [22] = function(I) -- JMP
-            Instruction = Instruction + I.sBx
-        end;
-        [23] = function(I) -- EQ
-            if (GetRegisteredValue(I.B) == GetRegisteredValue(I.C)) ~= (I.A ~= 0) then -- if ((RK(B) == RK(C)) ~= A) then PC++
-                Instruction = Instruction + 1
-            end
-        end;
-        [24] = function(I) -- LT
-            if (GetRegisteredValue(I.B) < GetRegisteredValue(I.C)) ~= (I.A ~= 0) then -- if ((RK(B) < RK(C)) ~= A) then PC++
-                Instruction = Instruction + 1
-            end
-        end;
-        [25] = function(I) -- LE
-            if (GetRegisteredValue(I.B) <= GetRegisteredValue(I.C)) ~= (I.A ~= 0) then -- if ((RK(B) <= RK(C)) ~= A) then PC++
-                Instruction = Instruction + 1
-            end
-        end;
-        [26] = function(I) -- TEST
-            if (not not I.A) == (I.C == 0) then
-                Instruction = Instruction + 1
-            end
-        end;
-        [27] = function(I) -- TESTSET
-            local B = I.B
-            if (not not B) == (I.C == 0) then
-                Instruction = Instruction + 1
-            else
-                Stack[I.A] = Stack[B]
-            end
-        end;
-        [28] = function(I) -- CALL
-            local A = I.A
-            local B = I.B
-            local C = I.C
-            local Args, ArgCount = {}
-            local AIndex, Ret = 0
-            if B == 1 then -- Get Arguments and Call (If B is 1, the function has no parameters)
-                Ret = {Stack[A]()}
-                ArgCount = #Ret
-            else
-                if B ~= 0 then
-                    ArgCount = A + B - 1 --  If B is 2 or more, there are (B-1) parameters.
-                else
-                    ArgCount = StackTop -- If B is 0, the function parameters range from R(A+1) to the top of the stack.
-                end
+	-- Yoinked from my old LBI and optimized because too much localizing can slow down performance by over 70% after I did a test on it.
+	local function Interpret()
+		local Return;
+		while not Return do
+			local I = Chunk.Instructions[Instruction]
+			--print("xd "..type(Stack[1]).." "..Inst.Name)
+			if I then
+				local Op = I.Opcode
+				if Op == 0 then-- MOVE
+					Stack[I.A] = Stack[I.B]
+				elseif Op == 1 then -- LOADK
+					Stack[I.A] = Constants[I.Bx]
+				elseif Op == 2 then -- LOADBOOL
+					Stack[I.A] = I.B ~= 0 -- If B == 1 then load true onto the stack vice versa
+					if I.C ~= 0 then -- If C is non-zero then JMP 1 instruction
+						Instruction = Instruction + 1
+					end
+				elseif Op == 3 then -- LOADNIL
+					for Index = I.A, I.B do -- Load nil values onto the stack in the range A-B
+						Stack[Index] = nil
+					end
+				elseif Op == 4 then -- GETUPVAL
+					local Upvalue = Upvalues[I.B]
+					Stack[I.A] = Upvalue.Loc[Upvalue.Index]
+				elseif Op == 5 then -- GETGLOBAL
+					--print(I.A, I.Bx, Constants[I.Bx])
+					-- CONCEPT: Maybe use this for something idk but it would be cool.
+					Stack[I.A] = Environment[Constants[I.Bx]]
+				elseif Op == 6 then -- GETTABLE
+					local Index = I.C_Constant or Stack[I.C]
+					Stack[I.A] = Stack[I.B][Index]
+				elseif Op == 7 then -- SETGLOBAL
+					Environment[Constants[I.Bx]] = Stack[I.A]
+				elseif Op == 8 then -- SETUPVAL
+					local Upvalue = Upvalues[I.B]
+					Upvalue.Loc[Upvalue.Index] = Stack[I.A]
+				elseif Op == 9 then -- SETTABLE
+					local Index = I.B_Constant or Stack[I.B]
+					local Value = I.C_Constant or Stack[I.C]
+					Stack[I.A][Index] = Value
+				elseif Op == 10 then -- NEWTABLE
+					Stack[I.A] = {} -- I'm not gonna add table allocation it's too hard and would add more performance drag if I did in the first place.
+				elseif Op == 11 then -- SELF
+					local A = I.A -- Example when it would speed up if locals were used.
+					local B = I.B
+					Stack[A + 1] = Stack[B]
+					Stack[A] = Stack[B][(I.C_Constant or Stack[I.C])]
+				elseif Op == 12 then -- ADD
+					Stack[I.A] = ((I.B_Constant or Stack[I.B]) + (I.C_Constant or Stack[I.C]))
+				elseif Op == 13 then -- SUB
+					Stack[I.A] = ((I.B_Constant or Stack[I.B]) - (I.C_Constant or Stack[I.C]))
+				elseif Op == 14 then -- MUL
+					Stack[I.A] = ((I.B_Constant or Stack[I.B]) * (I.C_Constant or Stack[I.C]))
+				elseif Op == 15 then -- DIV
+					Stack[I.A] = ((I.B_Constant or Stack[I.B]) / (I.C_Constant or Stack[I.C]))
+				elseif Op == 16 then -- MOD
+					Stack[I.A] = ((I.B_Constant or Stack[I.B]) % (I.C_Constant or Stack[I.C]))
+				elseif Op == 17 then -- POW
+					Stack[I.A] = ((I.B_Constant or Stack[I.B]) ^ (I.C_Constant or Stack[I.C]))
+				elseif Op == 18 then -- UNM (NEGATE)
+					Stack[I.A] = -Stack[I.B]
+				elseif Op == 19 then -- NOT
+					Stack[I.A] = not Stack[I.B]
+				elseif Op == 20 then-- LEN
+					Stack[I.A] = #Stack[I.B]
+				elseif Op == 21 then -- CONCAT
+					local Concatenated = {} -- Used to use a string but tables are faster
+					for Index = I.B, I.C do -- Concatenate items in the stack from range B-C
+						Concatenated[#Concatenated + 1] = Stack[Index]
+					end
+					Stack[I.A] = concat(Concatenated)
+				elseif Op == 22 then -- JMP
+					Instruction = Instruction + I.sBx
+				elseif Op == 23 then -- EQ
+					if ((I.B_Constant or Stack[I.B]) == (I.C_Constant or Stack[I.C])) ~= (I.A ~= 0) then -- if ((RK(B) == RK(C)) ~= A) then PC++
+						Instruction = Instruction + 1
+					end
+				elseif Op == 24 then -- LT
+					if ((I.B_Constant or Stack[I.B]) < (I.C_Constant or Stack[I.C])) ~= (I.A ~= 0) then -- if ((RK(B) < RK(C)) ~= A) then PC++
+						Instruction = Instruction + 1
+					end
+				elseif Op == 25 then -- LE
+					if ((I.B_Constant or Stack[I.B]) <= (I.C_Constant or Stack[I.C])) ~= (I.A ~= 0) then -- if ((RK(B) <= RK(C)) ~= A) then PC++
+						Instruction = Instruction + 1
+					end
+				elseif Op == 26 then-- TEST
+					if (not not I.A) == (I.C == 0) then
+						Instruction = Instruction + 1
+					end
+				elseif Op == 27 then -- TESTSET
+					local B = I.B
+					if (not not B) == (I.C == 0) then
+						Instruction = Instruction + 1
+					else
+						Stack[I.A] = Stack[B]
+					end
+				elseif Op == 28 then -- CALL
+					local A = I.A
+					local B = I.B
+					local C = I.C
+					local ParametersCount, ReturnArgsCount, ReturnArgs;
+					if B == 0 then
+						ParametersCount = StackTop - A
+					else
+						ParametersCount = B - 1
+					end
+					ReturnArgsCount, ReturnArgs = LuaVarargs(Stack[A](unpack(Stack, A + 1, A + ParametersCount)))
+					if C == 0 then
+						StackTop = A + ReturnArgsCount - 1
+					else
+						ReturnArgsCount = C - 1
+					end
 
-                for SIndex = (A + 1), ArgCount do
-                    AIndex = AIndex + 1
-                    Args[AIndex] = Stack[SIndex]
-                end
+					for Idx = 1, ReturnArgsCount do -- Push arguments to stack
+						Stack[A + Idx - 1] = ReturnArgs[Idx]
+					end
+				elseif Op == 29 then -- TAILCALL
+					local A = I.A
+					local B = I.B
+					local ParametersCount;
+					if B == 0 then
+						ParametersCount = StackTop - A
+					else
+						ParametersCount = B - 1
+					end
+					CloseUpvalues(OpenUpvalues, 0)
 
-                Ret = {Stack[A](unpack(Args, 1, (ArgCount - A)))}
-                ArgCount = #Ret
-            end
+					local ReturnArgsCount, ReturnArgs = LuaVarargs(Stack[A](unpack(Stack, A + 1, A + ParametersCount)))
+					return ReturnArgs -- yay done
+				elseif Op == 30 then -- RETURN
+					local A = I.A
+					local B = I.B
+					local Args, ArgCount = {} -- Return Arguments
+					if B == 0 then
+						ArgCount = StackTop - A + 1
+					else
+						ArgCount = B - 1
+					end
 
-            AIndex = 0
-            StackTop = (A - 1)
-            if C ~= 1 then -- Push Arguments to Stack (If C is 1, no return results are saved)
-                if C ~= 0 then
-                    ArgCount = A + C - 2
-                else
-                    ArgCount = ArgCount + A
-                end
+					for Idx = 1, ArgCount do
+						Args[Idx] = Stack[A + Idx - 1]
+					end
+					CloseUpvalues(OpenUpvalues, 0)
+					return Args -- yay done
+				elseif Op == 31 then -- FORLOOP
+					local A = I.A
+					local Step = Stack[A + 2]
+					local Index = Stack[A] + Step
+					Stack[A] = Index
 
-                for SIndex = A, ArgCount do
-                    AIndex = AIndex + 1
-                    Stack[SIndex] = Ret[AIndex]
-                end
-            end
-        end;
-        [29] = function(I) -- TAILCALL
-            local A = I.A
-            local B = I.B
-            local Args, ArgCount = {}
-            local Ret = 0
-            if B == 1 then -- Get Arguments and Call (If B is 1, the function has no parameters)
-                Ret = {Stack[A]()}
-            else
-                if B ~= 0 then
-                    ArgCount = A + B - 1 --  If B is 2 or more, there are (B-1) parameters.
-                else
-                    ArgCount = StackTop -- If B is 0, the function parameters range from R(A+1) to the top of the stack.
-                end
+					if Step > 0 then
+						if Index <= Stack[A + 1] then
+							Instruction = Instruction + I.sBx
+							Stack[A + 3] = Index
+						end
+					else
+						if Index >= Stack[A + 1] then
+							Instruction = Instruction + I.sBx
+							Stack[A + 3] = Index
+						end
+					end
+				elseif Op == 32 then -- FORPREP
+					local A = I.A
+					Stack[A] = Stack[A] - Stack[A + 2]
+					Instruction = Instruction + I.sBx
+				elseif Op == 33 then -- TFORLOOP
+					local A = I.A
+					local Offset = (A + 2)
+					local Ret = {Stack[A](Stack[A + 1], Stack[A + 2])}
+					for Index = 1, I.C do
+						Stack[Offset + Index] = Ret[Index]
+					end
 
-                for Index = (A + 1), ArgCount do
-                    Args[#Args + 1] = Stack[Index]
-                end
+					if Stack[A + 3] then
+						Stack[A + 2] = Stack[A + 3]
+					else
+						Instruction = Instruction + 1
+					end
+				elseif Op == 34 then -- SETLIST
+					local A = I.A
+					local B = I.B
+					local C = I.C
+					if C ~= 0 then
+						local Offset = ((C - 1) * 50)
+						for Index = 1, (B == 0 and StackTop or B) do
+							Stack[A][Offset + Index] = Stack[A + Index]
+						end
+					else
+						error("Bytecode has a pre-compilation error.")
+					end
+				elseif Op == 35 then -- CLOSE
+					CloseUpvalues(OpenUpvalues, I.A) -- ADDED! Support for closing and opening upvalues.
+				elseif Op == 36 then -- CLOSURE
+					local Proto = Protos[I.Bx]
+					local UpvalueList = {}
+					local Nups = Proto.Nups
 
-                Ret = {Stack[A](unpack(Args, 1, (ArgCount - A)))}
-            end
+					if Nups ~= 0 then
+						for Idx = 1, Nups do
+							local Psuedo = InstructionList[Instruction + Idx]
+							if Psuedo.Opcode == 0 then -- OP_MOVE
+								UpvalueList[Idx - 1] = OpenUpvalue(OpenUpvalues, Psuedo.B, Stack)
+							else -- OP_GETUPVAL
+								UpvalueList[Idx - 1] = Upvalues[Psuedo.B]
+							end
 
-            return Ret -- yay done
-        end;
-        [30] = function(I) -- RETURN
-            local A = I.A
-            local B = I.B
-            local Args, AIndex, ArgCount = {}, 0 -- Return Arguments
-            if B == 0 then
-                ArgCount = StackTop
-            elseif B == 1 then
-                return {nil}
-            else
-                ArgCount = A + B - 2
-            end
+							Instruction = Instruction + Nups
+						end
+					end
 
-            for Index = A, ArgCount do
-                AIndex = AIndex + 1
-                Args[AIndex] = Stack[Index]
-            end
-            return Args -- yay done
-        end;
-        [31] = function(I) -- FORLOOP
-            local A = I.A
-            local Step = Stack[A + 2]
-            local Index = Stack[A] + Step
-            Stack[A] = Index
+					Stack[I.A] = WrapFunction(Proto, UpvalueList) -- Push closure onto the stack
+				elseif Op == 37 then -- VARARG
+					local A = I.A
+					local B = I.B
+					for Index = A, A + (B > 0 and (B - 1) or VarArgSize) do
+						Stack[Index] = VarArg[Index - A]
+					end
+				end;
+			else
+				return
+			end
 
-            if Step > 0 then
-                if Index <= Stack[A + 1] then
-                    Instruction = Instruction + I.sBx
-                    Stack[A + 3] = Index
-                end
-            else
-                if Index >= Stack[A + 1] then
-                    Instruction = Instruction + I.sBx
-                    Stack[A + 3] = Index
-                end
-            end
-        end;
-        [32] = function(I) -- FORPREP
-            local A = I.A
-            Stack[A] = Stack[A] - Stack[A + 2]
-            Instruction = Instruction + I.sBx
-        end;
-        [33] = function(I) -- TFORLOOP
-            local A = I.A
-            local Offset = (A + 2)
-            local Ret = {Stack[A](Stack[A + 1], Stack[A + 2])}
-            for Index = 1, I.C do
-                Stack[Offset + Index] = Ret[Index]
-            end
+			Instruction = Instruction + 1
+		end
+		return Return
+	end
 
-            if Stack[A + 3] then
-                Stack[A + 2] = Stack[A + 3]
-            else
-                Instruction = Instruction + 1
-            end
-        end;
-        [34] = function(I) -- SETLIST
-            local A = I.A
-            local B = I.B
-            local C = I.C
-            if C ~= 0 then
-                local Offset = ((C - 1) * 50)
-                for Index = 1, (B == 0 and StackTop or B) do
-                    Stack[A][Offset + Index] = Stack[A + Index]
-                end
-            else
-                error("Bytecode has a pre-compilation error.")
-            end
-        end;
-        [35] = function(I) -- CLOSE
-            -- TODO: Add support for closing upvalues.
-        end;
-        [36] = function(I) -- CLOSURE
-            local Proto = Protos[I.Bx]
-            local UpvaLib = {}
-            local ProtoUpvalues = setmetatable({}, {
-                __index = function(_, Key)
-                    local Upvalue = UpvaLib[Key]
-                    return Upvalue.Parent[Upvalue.Index]
-                end;
-                __newindex = function(_, Key, Value)
-                    local Upvalue = UpvaLib[Key]
-                    Upvalue.Parent[Upvalue.Index] = Value
-                end
-            })
+	return function(...)
+		local Args = {...}
+		VarArg = {}
+		VarArgSize = #Args - 1
+		Environment = getfenv()
 
-            for Index = 1, Proto.Upvalues do
-                local Inst = InstructionList[Instruction]
-                if Inst.Opcode == 0 then -- OP_MOVE
-                    UpvaLib[Index - 1] = {
-                        Parent = Stack;
-                        Index = Inst.B;
-                    }
-                else -- OP_GETUPVAL
-                    UpvaLib[Index - 1] = {
-                        Parent = Upvalues;
-                        Index = Inst.B;
-                    }
-                end
+		local EStack, Ghost = {}, {}
+		StackTop = -1
+		Stack = setmetatable(EStack, {
+			__index = Ghost;
+			__newindex = function(self, Key, Value)
+				if Key > StackTop and Value then
+					StackTop = Key
+				end
+				Ghost[Key] = Value
+			end;
+		})
 
-                Instruction = Instruction + 1
-            end
+		for Index = 0, VarArgSize do
+			EStack[Index] = Args[Index + 1]
+			VarArg[Index] = Args[Index + 1]
+		end
 
-            Stack[I.A] = WrapFunction(Proto, ProtoUpvalues) -- Push closure onto the stack
-        end;
-        [37] = function(I) -- VARARG
-            local A = I.A
-            local B = I.B
-            for Index = A, A + (B > 0 and (B - 1) or VarArgSize) do
-                Stack[Index] = VarArg[Index - A]
-            end
-        end;
-    }
-
-    local function Interpret()
-        local Return;
-        while not Return do
-            local Inst = Chunk.Instructions[Instruction]
-            --print("xd "..type(Stack[1]).." "..Inst.Name)
-            if not Inst then
-                return
-            end
-
-            Return = OpFuncs[Inst.Opcode](Inst)
-            Instruction = Instruction + 1
-        end
-        return Return
-    end
-
-    return function(...)
-        local Args = {...}
-        VarArg = {}
-        VarArgSize = #Args - 1
-        Environment = getfenv()
-
-        local EStack, Ghost = {}, {}
-        StackTop = -1
-        Stack = setmetatable(EStack, {
-            __index = Ghost;
-            __newindex = function(self, Key, Value)
-                if Key > StackTop and Value then
-                    StackTop = Key
-                end
-                Ghost[Key] = Value
-            end;
-        })
-
-        for Index = 0, VarArgSize do
-            EStack[Index] = Args[Index + 1]
-            VarArg[Index] = Args[Index + 1]
-        end
-
-        Instruction = 1 -- Reset Position
-        local Success, Return = pcall(Interpret)
-        if Success then
-            return type(Return) == "table" and unpack(Return) or Return
-        else
-            local Src, Line, ErrMsg = match(Return, "^(.-):(%d+):%s+(.+)")
-            error(Chunk.Name..":"..(Chunk.Debug.Lines[Instruction] or "?")..": "..ErrMsg, 0) -- BUGFIX: Added error support for stripped debug info.
-        end
-    end
+		Instruction = 1 -- Reset Position
+		local Success, Return = pcall(Interpret)
+		if Success then
+			return type(Return) == "table" and unpack(Return) or Return
+		else
+			local Src, Line, ErrMsg = match(Return, "^(.-):(%d+):%s+(.+)")
+			-- Idk how I would do a traceback on an LBI without wasting an hour lol.
+			print(Line)
+			warn(Chunk.Name..":"..(Chunk.Debug.Lines[Instruction] or "?")..": "..ErrMsg) -- BUGFIX: Added error support for stripped debug info.
+		end
+	end
 end
 
--- Made to simulate loadstring
-local function loadbytecode(Bytecode, ...)
-    local MainChunk = DeserializeBytecode(Bytecode)
-    return WrapFunction(MainChunk)(...)
+local function loadbytecode(Bytecode)
+	local MainChunk = DeserializeBytecode(Bytecode)
+	return WrapFunction(MainChunk)
 end
 
--- Just A Quick Call Test:
---loadbytecode("\27\76\117\97\81\0\1\4\4\4\8\0\51\0\0\0\64\99\58\92\85\115\101\114\115\92\110\105\99\104\111\92\68\101\115\107\116\111\112\92\76\117\97\92\78\111\114\109\97\108\92\100\117\109\112\99\108\111\115\117\114\101\46\108\117\97\0\1\0\0\0\5\0\0\0\0\0\0\2\10\0\0\0\5\0\0\0\65\64\0\0\28\64\0\1\5\128\0\0\65\192\0\0\28\64\0\1\5\0\1\0\65\64\1\0\28\64\0\1\30\0\128\0\6\0\0\0\4\6\0\0\0\112\114\105\110\116\0\4\13\0\0\0\72\101\108\108\111\32\112\114\105\110\116\33\0\4\5\0\0\0\119\97\114\110\0\4\12\0\0\0\72\101\108\108\111\32\119\97\114\110\33\0\4\6\0\0\0\101\114\114\111\114\0\4\16\0\0\0\79\32\78\79\69\83\32\72\69\32\67\79\77\73\78\0\0\0\0\0\10\0\0\0\2\0\0\0\2\0\0\0\2\0\0\0\3\0\0\0\3\0\0\0\3\0\0\0\4\0\0\0\4\0\0\0\4\0\0\0\5\0\0\0\0\0\0\0\0\0\0\0")
+-- Xenon Script Scheduler
+local remove = table.remove
+local RenderStepped = game:GetService("RunService").RenderStepped
+local LastExecution = tick()
+local QueueList = {}
+local function schedulebytecode(Bytecode)
+	spawn(function()
+		if (tick() - LastExecution) < 0.10 then
+			repeat
+				RenderStepped:Wait()
+			until (tick() - LastExecution > 0.09)
+		end
+		LastExecution = tick()
+		QueueList[#QueueList + 1] = Bytecode
+	end)
+end
 
--- Performance Test:
---loadbytecode("\27\76\117\97\81\0\1\4\4\4\8\0\51\0\0\0\64\99\58\92\85\115\101\114\115\92\110\105\99\104\111\92\68\101\115\107\116\111\112\92\76\117\97\92\78\111\114\109\97\108\92\100\117\109\112\99\108\111\115\117\114\101\46\108\117\97\0\1\0\0\0\9\0\0\0\0\0\0\7\22\0\0\0\5\0\0\0\28\128\128\0\65\64\0\0\129\128\0\0\193\64\0\0\96\0\2\128\23\128\64\2\22\128\0\128\69\193\0\0\129\1\1\0\92\65\0\1\69\65\1\0\92\129\128\0\70\129\193\2\73\1\129\131\95\64\253\127\69\0\2\0\133\0\0\0\156\128\128\0\141\0\0\1\92\64\0\1\30\0\128\0\9\0\0\0\4\5\0\0\0\116\105\99\107\0\3\0\0\0\0\0\0\240\63\3\0\0\0\0\128\132\46\65\4\6\0\0\0\112\114\105\110\116\0\4\20\0\0\0\119\101\119\32\97\108\109\111\115\116\32\100\111\110\101\32\98\111\105\0\4\8\0\0\0\103\101\116\102\101\110\118\0\4\3\0\0\0\95\71\0\3\0\0\0\0\0\0\89\64\4\5\0\0\0\119\97\114\110\0\0\0\0\0\22\0\0\0\2\0\0\0\2\0\0\0\3\0\0\0\3\0\0\0\3\0\0\0\3\0\0\0\4\0\0\0\4\0\0\0\4\0\0\0\4\0\0\0\4\0\0\0\5\0\0\0\5\0\0\0\5\0\0\0\6\0\0\0\3\0\0\0\8\0\0\0\8\0\0\0\8\0\0\0\8\0\0\0\8\0\0\0\9\0\0\0\6\0\0\0\4\0\0\0\110\111\119\0\2\0\0\0\21\0\0\0\12\0\0\0\40\102\111\114\32\105\110\100\101\120\41\0\5\0\0\0\16\0\0\0\12\0\0\0\40\102\111\114\32\108\105\109\105\116\41\0\5\0\0\0\16\0\0\0\11\0\0\0\40\102\111\114\32\115\116\101\112\41\0\5\0\0\0\16\0\0\0\2\0\0\0\105\0\6\0\0\0\15\0\0\0\2\0\0\0\112\0\14\0\0\0\15\0\0\0\0\0\0\0")
-_G.loadbytecode = loadbytecode
+spawn(function() -- Script Scheduler Runtime
+	while RenderStepped:Wait() do
+		local NextInLine = QueueList[1]
+		if NextInLine then
+			remove(QueueList, 1)
+			spawn(function()
+				loadbytecode(NextInLine)()
+			end)
+		end
+	end
+end)
+
+-- Export functions.
+getgenv().loadbytecode = loadbytecode
+getgenv().schedulebytecode = schedulebytecode
 
 --[[
     Xenon's LBI is under the MIT License. In order to legally use this you must

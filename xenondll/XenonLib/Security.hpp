@@ -1,37 +1,41 @@
 #pragma once
 #include <Windows.h>
 #include <iostream>
-#define Seed (__TIME__[0] - '0' + __TIME__[1] - '0' + __TIME__[3] - '0' + __TIME__[4] - '0' + __TIME__[6] - '0' + __TIME__[7] - '0')
-template <int Size> struct ObfuscatedString
+
+#define SEED (__TIME__[0] + __TIME__[1] + __TIME__[3] + __TIME__[4] + __TIME__[6] + __TIME__[7])
+template <int Size, int Key>
+class ObfuscatedString
 {
-	char Obfuscated[Size] = { 0 };
+private:
+	char Obfuscated[Size];
+	char Deobfuscated[Size];
+public:
 	constexpr ObfuscatedString(const char* Data)
 	{
 		for (int Idx = 0; Idx < Size; Idx++)
 		{
-			Obfuscated[Idx] = Data[Idx] xor Seed;
+			Obfuscated[Idx] = Data[Idx] ^ SEED;
 		}
 	}
 
-	void Deobfuscate(char* Data) const
+	const char* Deobfuscate()
 	{
 		int Idx = 0;
 		for (int Idx = 0; Idx < Size; Idx++)
 		{
-			Data[Idx] = Obfuscated[Idx] xor Seed;
+			Deobfuscated[Idx] = Obfuscated[Idx] ^ SEED;
 		}
+		return &Deobfuscated[0];
 	}
 };
 
-// Found out Roblox scans for the strings "rL" and "Lua State", probably more as well (I found out by removing rL from my strings and Roblox wouldn't crash.) so I have to add this.
-#define OBFUSCATESTR(String) \
-    []() -> char* { \
-        constexpr int Size = sizeof(String) / sizeof(String[0]); \
-        constexpr auto Obfuscated = ObfuscatedString<Size>(String); \
-        static char Deobfuscated[Size]; \
-        Obfuscated.Deobfuscate(reinterpret_cast<char*>(Deobfuscated)); \
-        return Deobfuscated; \
+#define OBFUSCATESTRKEY(String, Key) \
+    []() -> const char* { \
+        constexpr unsigned int Len = sizeof(String) / sizeof(String[0]); \
+        static auto Encrypted = ObfuscatedString<Len, Key>(String); \
+        return Encrypted.Deobfuscate(); \
     }()
+#define OBFUSCATESTR(String) OBFUSCATESTRKEY(String, SEED)
 
 static void SETSEED()
 {

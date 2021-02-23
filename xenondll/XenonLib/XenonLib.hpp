@@ -9,6 +9,7 @@
 #include <conio.h>
 #include <thread>
 #include <vector>
+#include "Security.hpp"
 extern "C"
 {
 	#include "..\Lua\lua.h"
@@ -59,10 +60,12 @@ namespace Xenon
 		// Text Funcs
 		static std::string ReadLine();
 		static char Read();
+		static void Clear();
 		static void Write(std::string Message);
 		static void WriteHex(uint Message);
 		static void WriteLine(std::string Message);
 		static void Info(int Type, std::string Message);
+		static void Info(std::string From, std::string Message);
 	};
 	#pragma endregion
 
@@ -88,6 +91,14 @@ namespace Xenon
 		static FuncData* GetFuncData(ulong Point);
 		static void* DetourFunction(ulong Point, ulong Loc);
 		static bool UnDetourFunction(uint Point, void* Backup);
+	};
+	#pragma endregion
+
+	#pragma region 
+	class AntiTaint
+	{
+	public:
+		static int Init();
 	};
 	#pragma endregion
 }

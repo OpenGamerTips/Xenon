@@ -16,6 +16,8 @@ void Console::Open(std::string Name)
 	Console::SetName(Name);
 	freopen("CONOUT$", "w", stdout);
 	freopen("CONIN$", "r", stdin);
+	auto Menu = GetSystemMenu(GetConsoleWindow(), FALSE);
+	EnableMenuItem(Menu, SC_CLOSE, MF_GRAYED);
 	Console::IsInit = true;
 }
 
@@ -67,6 +69,11 @@ char Console::Read()
 	return (char)_getch();
 }
 
+void Console::Clear()
+{
+	system("cls"); // PRIMARY-TODO: If someone put a file called 'cls' in the Roblox directory that's malicious, it would allow for execution of malware through this DLL.
+}
+
 void Console::Write(std::string Message)
 {
 	std::cout << Message;
@@ -111,5 +118,23 @@ void Console::Info(int Type, std::string Message)
 	
 	SetConsoleTextAttribute(ConsoleHandle, 7);
 	std::cout << Message << "\n";
+	SetConsoleTextAttribute(ConsoleHandle, SavedInfo.wAttributes); // Revert color
+}
+
+void Console::Info(std::string From, std::string Message)
+{
+	void* ConsoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	if (!ConsoleHandle)
+	{
+		return;
+	}
+
+	CONSOLE_SCREEN_BUFFER_INFO SavedInfo; // SavedInfo.wAttributes is the integer for text attributes.
+	GetConsoleScreenBufferInfo(ConsoleHandle, &SavedInfo);
+	std::cout << "[";
+	SetConsoleTextAttribute(ConsoleHandle, 8);
+	std::cout << From;
+	SetConsoleTextAttribute(ConsoleHandle, 7);
+	std::cout << "] " << Message << "\n";
 	SetConsoleTextAttribute(ConsoleHandle, SavedInfo.wAttributes); // Revert color
 }

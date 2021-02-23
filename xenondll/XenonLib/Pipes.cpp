@@ -1,7 +1,7 @@
 #include "XenonLib.hpp"
 using Xenon::Pipes;
 
-void PipeListenThread(std::string PipeName, NamedPipeCallback Callback)
+void Pipes::ListenPipe(std::string PipeName, NamedPipeCallback Callback)
 {
 	char Buffer[1024];
 	HANDLE CurrPipe = CreateNamedPipeA(
@@ -31,10 +31,4 @@ void PipeListenThread(std::string PipeName, NamedPipeCallback Callback)
 		}
 		DisconnectNamedPipe(CurrPipe);
 	}
-}
-
-void Pipes::ListenPipe(std::string PipeName, NamedPipeCallback Callback)
-{
-	std::thread Thread(PipeListenThread, PipeName, Callback);
-	Thread.join();
 }

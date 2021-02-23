@@ -1,9 +1,76 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(477,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  eyestep.cpp
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep.cpp(1399,31): warning C4018: '>': signed/unsigned mismatch
+  eyestep_utility.cpp
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(227,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(248,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(912,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(916,23): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(999,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1016,30): warning C4267: '=': conversion from 'size_t' to 'uint8_t', possible loss of data
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1062,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1124,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1604,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1629,10): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1651,18): warning C4244: 'initializing': conversion from 'std::streamoff' to 'size_t', possible loss of data
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1840,15): warning C4302: 'reinterpret_cast': truncation from 'void *' to 'uint8_t'
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1843,15): warning C4302: 'reinterpret_cast': truncation from 'void *' to 'uint16_t'
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1849,15): warning C4302: 'reinterpret_cast': truncation from 'void *' to 'uint8_t'
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1852,15): warning C4302: 'reinterpret_cast': truncation from 'void *' to 'uint16_t'
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1865,45): warning C4018: '>=': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep_utility.cpp(1736,10): warning C4101: 'bytes_read': unreferenced local variable
   Main.cpp
-C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep.h(17,1): warning C4005: 'PRE_66': macro redefinition
-C:\Users\nicho\Documents\GitHub\Xenon\xenondll\Retcheck.h(123): message : see previous definition of 'PRE_66'
-C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep.h(18,1): warning C4005: 'PRE_67': macro redefinition
-C:\Users\nicho\Documents\GitHub\Xenon\xenondll\Retcheck.h(124): message : see previous definition of 'PRE_67'
-C:\Users\nicho\Documents\GitHub\Xenon\xenondll\EyeStep\eyestep.h(19,1): warning C4005: 'PRE_LOCK': macro redefinition
-C:\Users\nicho\Documents\GitHub\Xenon\xenondll\Retcheck.h(125): message : see previous definition of 'PRE_LOCK'
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\XenonLib\Security.hpp(42,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\RLua.h(421,26): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\RLua.h(457,25): warning C4018: '<': signed/unsigned mismatch
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\Main.hpp(14,121): warning C4244: 'return': conversion from '_Rep' to 'ulong', possible loss of data
+          with
+          [
+              _Rep=__int64
+          ]
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\Main.cpp(62,21): warning C4018: '<': signed/unsigned mismatch
+  AntiTaint.cpp
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\XenonLib\Security.hpp(42,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  Console.cpp
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\XenonLib\Security.hpp(42,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  Security.hpp
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\XenonLib\Security.hpp(42,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  Pipes.cpp
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\XenonLib\Security.hpp(42,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  Utility.cpp
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\XenonLib\Security.hpp(42,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  Generating Code...
+C:\Users\nicho\Documents\GitHub\Xenon\xenondll\RLua.h(431): warning C4715: 'Callcheck::CallcheckVEH': not all control paths return a value
+  lapi.c
+  lauxlib.c
+  lbaselib.c
+  lcode.c
+  ldblib.c
+  ldebug.c
+  ldo.c
+  ldump.c
+  lfunc.c
+  lgc.c
+  linit.c
+  liolib.c
+  llex.c
+  lmathlib.c
+  lmem.c
+  loadlib.c
+  lobject.c
+  lopcodes.c
+  loslib.c
+  lparser.c
+  Generating Code...
+  Compiling...
+  lstate.c
+  lstring.c
+  lstrlib.c
+  ltable.c
+  ltablib.c
+  ltm.c
+  lundump.c
+  lvm.c
+  lzio.c
+  Generating Code...
   XenonDll.vcxproj -> C:\Users\nicho\Documents\GitHub\Xenon\build\XenonDll\XenonDll.dll
