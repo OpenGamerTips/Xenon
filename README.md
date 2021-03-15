@@ -1,3 +1,5 @@
+# Merging discontinued project into a private project soon to be a full exploit source.
+
 # Xenon
 [![Build status](https://ci.appveyor.com/api/projects/status/w41ccdgt3f2wct84?svg=true)](https://ci.appveyor.com/project/OpenGamerTips/Xenon)
 [![Update time](https://badges.pufler.dev/updated/OpenGamerTips/Xenon)](https://github.com/OpenGamerTips/Xenon)
